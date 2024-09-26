@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Room</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <h1>Welcome to the Game Room</h1>
+        <div id="nameInputDiv">
+            <label for="playerName">Enter your name:</label>
+            <input type="text" id="playerName">
+            <button onclick="enterGame()">Enter</button>
+        </div>
+        <div class="options" id="optionsDiv" style="display: none;">
+            <button class="option-button" id="offline-mode">Offline Mode</button>
+            <button class="option-button" id="play-with-friends" onclick="showPopup()">Play with Friends</button>
+            <a href="#" class="option-button" id="vs-computer">VS Computer</a>
+        </div>
+    </div>
+
+    <div class="popup" id="popup">
+        <div class="popup-content">
+            <h2>Play with Friends</h2>
+            <button class="option-button" onclick="createRoom()">Create Room</button>
+            <button class="option-button" onclick="joinRoom()">Join Room</button>
+            <div id="createRoomDiv" class="hidden">
+                <h2>Room Code: <span id="roomCode"></span></h2>
+                <h3>Players:</h3>
+                <ul id="playersList"></ul>
+                <button class="start-button" onclick="startGame()">Start Game</button>
+            </div>
+            <div id="joinRoomDiv" class="hidden">
+                <label for="joinCode">Enter Room Code:</label>
+                <input type="text" id="joinCode">
+                <button class="option-button" onclick="submitJoinCode()">Join</button>
+                <p class="waiting-message hidden" id="waitingMessage">Waiting for host to start the game...</p>
+                <p class="error-message hidden" id="errorMessage">Room not found. Please try again.</p>
+            </div>
+            <div class="popup-buttons">
+                <button onclick="closePopup()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameBoardDiv" class="container hidden">
+        <h2>Game Board</h2>
+        <!-- Add your game board implementation here -->
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
