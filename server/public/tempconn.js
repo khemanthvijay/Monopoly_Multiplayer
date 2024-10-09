@@ -55,11 +55,15 @@ class WebSocketManager {
 class PlayerDisplayManager {
     static button = "";
     static moved = null;
+    static tradeIndex = 1;
+    static TradeData = [];
+    static tradeOffered = [];
     static displayMessage(data) {
         const docEle = document.getElementById('game-message');
         const diceEle = document.getElementById('sdice');
         const done = document.getElementById('done');
         const num = data.displayMessage[0];
+        console.log("data.dis "+data.displayMessage[0]);
         if (num === 0) {
             setTimeout(() => {
                 let upd = data.displayMessage[2].message.replace('num',  data.currentPlayer);
@@ -283,7 +287,7 @@ class PlayerDisplayManager {
         }, 3000);
          console.log(msg, msg.property, msg[1]);
         heading.textContent = head+msg[0].property[0];
-        this.addBuyIcon(data);
+        this.addBuyIcon(data.handlepopupData);
         // Create the HTML content
       const cardContent = `
           <div class="card" id="card-popup">
@@ -342,14 +346,14 @@ class PlayerDisplayManager {
           this.clearpopup();
         }, 3000);
         if(type == 'unlucky')
-        {  let data = { 
-            displayMessage: [
-                {}, // Placeholder for index 0
-                {}, // Placeholder for index 1
-                { message: 'Click done to end turn' } // Index 2 with the message
-            ]
-        };
-            this.displayMessage(data.displayMessage[2].message)
+         {  //let data = { 
+        //     displayMessage: [
+        //         {}, // Placeholder for index 0
+        //         {}, // Placeholder for index 1
+        //         { message: 'Click done to end turn' } // Index 2 with the message
+        //     ]
+        // };
+        //     this.displayMessage(data.displayMessage[2].message)
         }
         heading.textContent = head;
         parentElement.innerHTML = msg;
@@ -366,21 +370,21 @@ class PlayerDisplayManager {
         let tradecont = `    <!-- Trade initiation form -->
       <div id="tradeForm">
           <div class="playerDisplay">
-              <button id="prevPlayerBtn" >&lt;</button>
+              <button id="prevTradePlayer" >&lt;</button>
               <span id="currentPlayer"></span>
-              <button id="nextPlayerBtn" >&gt;</button>
+              <button id="nextTradePlayer" >&gt;</button>
           </div>
       
           <div class="cardsSection">
               <label for="playerCards">Your cards:</label>
-              <select id="playerCards">
+              <select id="playerCards"multiple>
                   <!-- Options populated dynamically with player's cards -->
               </select>
           </div>
       
           <div class="cardsSection">
               <label for="requestedCards">Other player's cards:</label>
-              <select id="requestedCards">
+              <select id="requestedCards" multiple>
                   <!-- Options populated dynamically with other player's cards -->
               </select>
           </div>
@@ -461,9 +465,204 @@ class PlayerDisplayManager {
                 message: 'ClickedTrade',
                 player: wsManager.mainplayer,
                 roomCode: wsManager.roomCode
-            })
+            });
+            let data = {"handlepopupData":['trade','Trade with Players',""]};
+            PlayerDisplayManager.handlepopup(data);
+            PlayerDisplayManager.addEventListenersTrade();
+        }
+        static addEventListenersTrade() {
+            document.getElementById('nextTradePlayer').onclick = () => {
+                this.changePlayerTrade(1); 
+            };
+            
+            document.getElementById('prevTradePlayer').onclick = () => {
+                this.changePlayerTrade(-1);
+            }
+            document.getElementById('submittrade').onclick = () => {
+                this.submittrade();
+            }
+            document.getElementById('canceltrade').onclick = () => {
+                this.clearpopup();
+            }
+        }
+        static showTrade(data) {
+            this.TradeData = data;
+            console.log("index "+this.tradeIndex);
+            document.getElementById('currentPlayer').innerText = data.players[this.tradeIndex].playerName;
+            let playerCardsDropdown = document.getElementById('playerCards');
+            playerCardsDropdown.innerHTML = '';
+            let emptyOption = document.createElement('option');
+            emptyOption.text = "select card";
+            emptyOption.value = ""; // Optionally, you can set a value for the empty option
+            playerCardsDropdown.add(emptyOption, 0);
+            data.playersCards[data.currentPlayer[1]].forEach(card => {   
+                let option = document.createElement('option');
+                option.text = card;
+                //console.log(this.players[this.playerIndex-1].cards);
+                playerCardsDropdown.add(option);
+              });
+              let tradeWithPlayerCardsDropdown = document.getElementById('requestedCards');
+              tradeWithPlayerCardsDropdown.innerHTML = '';
+              let empty = document.createElement('option');
+              empty.text = "select card";
+              empty.value = ""; // Optionally, you can set a value for the empty option
+              tradeWithPlayerCardsDropdown.add(empty, 0);
+              data.playersCards[this.tradeIndex].forEach(card => {
+                let option = document.createElement('option');
+                option.text = card;
+                tradeWithPlayerCardsDropdown.add(option);
+              });
+              document.getElementById('moneyOffered').addEventListener('input', function() {
+                document.getElementById('moneyOfferedValue').innerText = this.value;
+                document.getElementById('moneyOffered').max = data.playersMoney[data.currentPlayer[1]];
+                });
+                document.getElementById('moneyRequested').addEventListener('input', function() {
+                document.getElementById('moneyRequestedValue').innerText = this.value;
+                 });
+                 this.tradeOffered.splice(0, this.tradeOffered.length);
+                 this.tradeOffered.push({
+                  "offeredto":[this.tradeIndex,data.players[this.tradeIndex].playerName]
+                 })
         }
 
+        static handleTradeOffering(message) {
+            let data = message.data;
+            let popup = {"handlepopupData":['tradeoffered', 'Trade Offer']};
+            PlayerDisplayManager.handlepopup(popup);
+            let offeredCardsContainer = document.getElementById('offeredCardsContainer');
+            offeredCardsContainer.innerHTML = '';
+    
+            let validOfferedCards = data[1].offeredCards.filter(card => card !== "select card");
+    
+            if (validOfferedCards.length > 0) {
+                validOfferedCards.forEach(card => {
+                    let cardElement = document.createElement('div');
+                    cardElement.textContent = card;
+                    offeredCardsContainer.appendChild(cardElement);
+                });
+            } else {
+                let messageElement = document.createElement('div');
+                messageElement.textContent = "No cards offered.";
+                offeredCardsContainer.appendChild(messageElement);
+            }
+    
+            let requestedCardsContainer = document.getElementById('requestedCardsContainer');
+            requestedCardsContainer.innerHTML = '';
+    
+            let validRequestedCards = data[1].requestedCards.filter(card => card !== "select card");
+    
+            if (validRequestedCards.length > 0) {
+                validRequestedCards.forEach(card => {
+                    let cardElement = document.createElement('div');
+                    cardElement.textContent = card;
+                    requestedCardsContainer.appendChild(cardElement);
+                });
+            } else {
+                let messageElement = document.createElement('div');
+                messageElement.textContent = "No cards requested.";
+                requestedCardsContainer.appendChild(messageElement);
+            }
+    
+            document.getElementById('offeredMoney').innerText = data[1].moneyOffered;
+            document.getElementById('requestedMoney').innerText = data[1].moneyRequested;
+            document.getElementById('acceptBtn').addEventListener('click', () => {
+                //console.log(this.tradeData);
+                let validOfferedCards = data[1].offeredCards.filter(card => card !== "select card");
+                let validRequestedCards = data[1].requestedCards.filter(card => card !== "select card");
+                let offferedData = [validOfferedCards,validRequestedCards,data[1].moneyOffered,data[1].moneyRequested];
+                let offeredto = data[0].offeredto[0];
+
+                wsManager.sendMessage({
+                    type: 'MainGameMessage',
+                    message: 'SubmittingTrade',
+                    player: wsManager.mainplayer,
+                    roomCode: wsManager.roomCode,
+                    data: offferedData,
+                    offeredto:offeredto
+                });
+                
+                // Assuming tradeData contains information about the trade and updated ownership
+                data[1].offeredCards.forEach(cardName => {
+                     // Assuming you have a function to retrieve card object by name
+                    if (cardName) {
+                        //this.addBuyIcon(cardName);
+                        // console.log('updated offered');
+                    }
+                });
+                data[1].requestedCards.forEach(cardName => {
+                   
+                    if (cardName) {
+                        //this.addBuyIcon(cardName);
+                        // console.log('upated icon requested');
+                    }
+                });
+
+                this.clearpopup();
+            });
+    
+            document.getElementById('rejectBtn').addEventListener('click', () => {
+                data = [];
+                this.TradeData =[];
+                // console.log('cleared ' + data);
+                this.clearpopup();
+            });
+            // this.players.forEach(player => {
+            //      console.log(`Player ${player.id} cards:`, player.cards);
+            // });
+        }
+        static submittrade(){
+            let moneyOffered = parseInt(document.getElementById('moneyOffered').value);
+              let moneyRequested = parseInt(document.getElementById('moneyRequested').value);
+              let offeredCards = [];
+              let requestedCards = [];
+          
+              // Get offered cards
+              let selectedCardsDropdown = document.getElementById('playerCards');
+              for (let option of selectedCardsDropdown.options) {
+                  if (option.selected) {
+                      offeredCards.push(option.text);
+                  }
+              }
+          
+              // Get requested cards
+              let requestedCardsDropdown = document.getElementById('requestedCards');
+              for (let option of requestedCardsDropdown.options) {
+                  if (option.selected) {
+                      requestedCards.push(option.text);
+                  }
+              }
+          
+              // Push all data into the tradeData array
+              //console.log(offeredCards+" "+requestedCards);
+              if(offeredCards != "select card" || requestedCards != "select card"){
+              this.tradeOffered.push({
+                  "offeredCards": offeredCards,
+                  "requestedCards": requestedCards,
+                  "moneyOffered": moneyOffered,
+                  "moneyRequested": moneyRequested
+              });
+              console.log(this.tradeOffered);
+              setTimeout(() => {
+                wsManager.sendMessage({
+                    type: 'MainGameMessage',
+                    message: 'TradeOffered',
+                    player: wsManager.mainplayer,
+                    roomCode: wsManager.roomCode,
+                    data:this.tradeOffered
+                })
+              }, 2000);}
+              else{
+                alert('Trade is invalid');
+              }
+              this.clearpopup();
+          }
+
+        static changePlayerTrade(index) {
+            this.tradeIndex = (this.tradeIndex + index < 0 || this.tradeIndex + index >= this.TradeData.players.length)? ((this.tradeIndex + index < 0) ? this.TradeData.players.length - 1 : 0): this.tradeIndex + index;
+            if (this.tradeIndex !== this.TradeData.currentPlayer[1]) 
+                this.showTrade(this.TradeData);
+            //console.log(this.tradeIndex);
+            }
         static async handleChangePosition(data) {
             await this.moved;
             let playerIndex = data.currentPlayerIndex;
@@ -485,9 +684,28 @@ class PlayerDisplayManager {
         }
         console.log('end');
         }
+        static changeBuyIcon(data) {
+            let cardDataArray = data.data;
+            console.log(data.data);
+            // Iterate through each card's data and call addBuyIcon one by one
+            cardDataArray.forEach(cardData => {
+                let propertyData = [
+                    {}, // Index 0 (empty)
+                    {}, // Index 1 (empty)
+                    [
+                        { property: cardData.property }, // Property details at index 2[0]
+                        cardData.color                    // Color at index 2[1]
+                    ]
+                ];
+                
+                // Call addBuyIcon with the formatted data
+                this.addBuyIcon(propertyData);
+            });
+        }
+
         static addBuyIcon(data) {
-            let color = data.handlepopupData[2][1];
-            let property = data.handlepopupData[2][0].property;
+            let color = data[2][1];
+            let property = data[2][0].property;
             console.log('adding icon',property);
             if(property[1] <= 10){
             const container = document.getElementById("icon-position-" + property[1]);

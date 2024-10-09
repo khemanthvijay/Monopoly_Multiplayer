@@ -209,7 +209,7 @@ class Game {
         this.isRolling = true;
         var random1 = Math.floor(Math.random() * 6) + 1; // Generate a random number between 1 and 6
         var random2 = Math.floor(Math.random() * 6) + 1; // Generate a random number between 1 and 6
-        this.movePlayer(4,3);
+        this.movePlayer(random1,random2);
        }
        
        movePlayer(random1,random2) {
@@ -225,7 +225,7 @@ class Game {
             functionsToCall: ['handleDiceMessage', 'displayMessage'],
             currentPlayer: this.players[this.playerIndex-1].playerName,
             displayMessage: [2, {message: this.messagePlayer[2]}, {message: `Player ${this.playerIndex} has rolled ${random1 + random2}`}],
-            dice: [4, 3],
+            dice: [random1, random2],
             playersData: playersData
         };
         let prevPosition = this.players[this.playerIndex-1].position;
@@ -260,8 +260,8 @@ class Game {
             if (property.owner !== this.players[this.playerIndex-1].id)
                 property.payRent(this.players[this.playerIndex-1], this, 7);
             }else{
-                console.log('rolled '+7);
-                this.handleSpecialCard(splcard, 7); 
+                console.log('rolled '+total);
+                this.handleSpecialCard(splcard, total); 
             }
        }
        
@@ -277,7 +277,7 @@ class Game {
         //console.log('handle '+this.playerIndex);
         let currentPlayer = this.players[this.playerIndex-1];
         if(!currentPlayer.jail[0] || currentPlayer.jail[1] == 0 ){
-           this.movePlayerAnimation(rolled);
+           this.movePlayer(rolled);
            //console.log('checked not in jail'); 
         }
         else{
@@ -285,7 +285,7 @@ class Game {
                 currentPlayer.jail[0] = false;
                 currentPlayer.jail[1] = 0;
                 this.handlepopup('other','Lucky','');
-                this.movePlayerAnimation(rolled);
+                this.movePlayer(rolled);
             }
             else{
                 this.handlepopup('unlucky','UNLUCKY !!!','Try Again');
@@ -307,17 +307,19 @@ class Game {
 
     waitjail() {
         let currentPlayer = this.players[this.playerIndex-1];
+        console.log(currentPlayer.jail);
         if(currentPlayer.jail[1] >=3){
             currentPlayer.jail[0] = false;
             currentPlayer.jail[1] = 0;
             currentPlayer.addSubMoney(true, 200, this.room);
             //this.clearpopup();
+            console.log("unlucky third time");
             this.handlepopup('other','Repayed Jail','Unlucky!!!');
         }
         else{currentPlayer.jail[1]++;
         currentPlayer.jail[0] = true;
         //this.clearpopup();
-        //console.log(currentPlayer.jail[1]);
+        console.log("wait "+currentPlayer.jail[1]);
     }
     }
     getSpecialCardNameByPosition(position) {
@@ -334,6 +336,133 @@ class Game {
         return this.players.find(player => player.playerID === playerId);
     }
 
+    tradeProperty() {
+       // this.handlepopup('trade','Trade with Players',"");
+        let message ={
+            functionsToCall : ['showTrade'],
+            currentPlayer : [this.players[this.playerIndex-1].playerName,this.playerIndex-1],
+            playersCards: this.players.map(player => player.cards),
+            playersMoney: this.players.map(player => player.money),
+            players: this.players.map(player => ({
+                playerName: player.playerName,
+                playerID: player.playerID
+            }))
+        };
+        console.log(message);
+        if (this.room) {
+            this.room.sendToPlayer(this.players[this.playerIndex - 1].playerName,{type: 'TradeInitialization', message}); // Broadcast message to all players in the room
+            this.gameState = {type: 'TradeInitialization', message};
+        } else {
+            console.error(`Room not found.`);
+        }
+    }
+    handleTradeOffered (data){
+        let message = {
+            functionsToCall : ['handleTradeOffering'],
+            data : data.data
+        }
+        this.room.sendToPlayer(data.data[0].offeredto[1],{type: 'TradeOffering', message});
+    }
+
+    deleteCardFromPlayer(playerId, card) {
+        const playerCards = this.players[playerId].cards;
+        //console.log(playerCards);
+        for (let i = 0; i < playerCards.length; i++) {
+            if (playerCards[i] == card) {
+                playerCards.splice(i, 1); // Remove the card from the player's cards array
+                let property = this.properties.find(property => property.card === card && property.owner === playerId);
+                if (property) {
+                    property.owner = null;
+                }
+                break; // Exit the loop once the card is found and removed
+            }
+        }
+    }
+
+    getCardByName(cardName) {
+        for (const property of this.properties) {
+            if (String(property.name) === String(cardName)) {
+                //console.log("Card found:", property);
+                return property;
+            }
+        }
+        //console.log("Card not found.");
+        return null; // Return null if card name is not found
+    }
+
+    submittingTrade(data) {
+        let validOfferedCards = data.data[0];
+        let validRequestedCards = data.data[1];
+        let offeredto = data.offeredto;
+        console.log(this.players[this.playerIndex-1].cards);
+        console.log(offeredto+" "+validOfferedCards+" "+validRequestedCards);
+        if (validOfferedCards.length > 0) {
+            //console.log('offered' + validOfferedCards);
+            this.deleteCardFromPlayer(this.playerIndex - 1, validOfferedCards);
+            validOfferedCards.forEach(cardName => {
+                let card = this.getCardByName(cardName);
+                if (card) {
+                    console.log(card);
+                    card.owner = offeredto;
+                    this.players[offeredto].cards.push(card.name);
+                    console.log('offered to '+this.players[offeredto].playerName);
+
+                }
+            });
+        }
+        if (validRequestedCards.length > 0) {
+            //console.log('requested' + validRequestedCards);
+            validRequestedCards.forEach(cardName => {
+                let card = this.getCardByName(cardName);
+                if (card) {
+                    card.owner = this.playerIndex-1; // Update the owner to the current player
+                    this.players[this.playerIndex - 1].cards.push(card.name);
+                }
+            });
+            this.deleteCardFromPlayer(parseInt(offeredto), validRequestedCards);
+        }
+
+        // Update player's money by subtracting the requested money and adding the offered money
+        if (data.data[2]) {
+            console.log('offered money '+data[2])
+            this.players[offeredto].addSubMoney(false, data.data[2], this.room);
+            this.players[this.playerIndex - 1].addSubMoney(true, data.data[2], this.room);
+        }
+        if (data.data[3]) {
+            this.players[offeredto].addSubMoney(true, data.data[3], this.room);
+            this.players[this.playerIndex - 1].addSubMoney(false, data.data[3], this.room);
+        }
+        console.log(this.players.map(player => ({
+           cards: player.cards,
+           playerName:player.playerName
+        })));
+        let allCards = [...validOfferedCards, ...validRequestedCards];
+        let cardDataArray = [];
+        
+        // Iterate through all the cards
+        allCards.forEach(cardName => {
+        let card = this.getCardByName(cardName);
+        if (card) {
+            // Gather property details and color
+            let property = {
+                name: card.name,
+                position: card.position
+            };
+            let color = this.color[card.owner]; // Owner's color
+            console.log("owner "+card.owner);
+            // Combine property and color into a single object and add to cardDataArray
+            cardDataArray.push({
+                property: [property.name, property.position],
+                color: color
+            });
+        }
+    });
+        let message = {
+            functionsToCall:['changeBuyIcon'],
+            data:cardDataArray
+        }
+        this.room.broadcast({'type':'Trade Success',message});
+    }
     changeposition(newpos, total) {
         const currentPlayer = this.players[this.playerIndex - 1];
         const prevpos = currentPlayer.position;
@@ -410,10 +539,25 @@ class Game {
             playerName : this.players[this.playerIndex-1].playerName
         };
         this.room.broadcast({type: 'NextPlayerMessage', message});
+        this.checkNextPlayerJail();
     }
 
-    ClickedTrade() {
+    checkNextPlayerJail() {
+        //console.log('player index'+this.playerIndex);
+        let nextplayer = this.players[this.playerIndex-1];
+        if(nextplayer.jail[0]){
+            let message = {
+                functionsToCall: ['handlepopup'],
+                handlepopupData: ['jail', 'You Are In Jail', '']
+            };
 
+            // Send message to the player
+            this.room.sendToPlayer(
+                this.players[this.playerIndex - 1].playerName,
+                { type: 'Popup', message }
+            );
+        }
+        //console.log('next player jail '+nextPlayer.jail);
     }
 
     handleReload() {
@@ -449,12 +593,12 @@ class Game {
         let currentPlayer = this.players[this.playerIndex-1];
         const specialActions = {
             'chance': {
-                7: () => [this.changeposition(45, rolled), /*this.handlepopup('chance', "Sent to Jail", "Crime")*/],
-                3: () => [this.movePlayerAnimation(3, rolled), this.handlepopup('chance', 'Moving 3 Forward', "")],
+                2: () => [this.changeposition(45, rolled), /*this.handlepopup('chance', "Sent to Jail", "Crime")*/],
+                3: () => [this.movePlayer(3, rolled), this.handlepopup('chance', 'Moving 3 Forward', "")],
                 4: () => [currentPlayer.addSubMoney(true, 100, this.room), this.handlepopup('chance', 'School fee Paid $100', "")],
                 5: () => [this.changeposition(45), /*this.handlepopup('chance', 'Sent to Jail', 'Kidnap')*/],
                 6: () => [currentPlayer.addSubMoney(false, 100, this.room), this.handlepopup('chance', 'You got Refund $100', "Bank Error")],
-                2: () => [this.changeposition(20), this.handlepopup('chance', 'Chance to Visit New York', '')],
+                7: () => [this.changeposition(20), this.handlepopup('chance', 'Chance to Visit New York', '')],
                 8: () => [currentPlayer.addSubMoney(true, 200, this.room), this.handlepopup('chance', 'Electric City Bill Paid $200')],
                 9: () => this.handlepopup('chance', "Bank Error", 'Refund not Processed'),
                 10: () => [currentPlayer.addSubMoney(false, 100, this.room), this.handlepopup('chance', 'Your property value increased', 'You are safe')],
@@ -465,14 +609,14 @@ class Game {
                 2: () => [this.changeposition(28, rolled), this.handlepopup('chest', 'You are Visiting Ventor avenue', '')],
                 3: () => [currentPlayer.addSubMoney(true, 150, this.room), this.handlepopup('chest', 'Your Computer Damaged', 'Repair charges $150')],
                 4: () => [this.changeposition(45), /*this.handlepopup('chest', 'Sent to Jail', 'Selling Illegal Items')*/],
-                5: () => [this.movePlayerAnimation(6), this.handlepopup('chest', 'Moving six Steps Ahead', '')],
+                5: () => [this.movePlayer(6), this.handlepopup('chest', 'Moving six Steps Ahead', '')],
                 6: () => [this.splbirthday(),this.handlepopup('chest','Its Your Birthday','Collect 20 From Each Player')],
                 7: () => [currentPlayer.addSubMoney(true, 50, this.room), this.handlepopup('chest', 'Doctor Visiting fee $50', '')],
                 8: () => this.handlepopup('chest', 'Nothing Special', ''),
                 9: () => [this.changeposition(1), this.handlepopup('chest', 'Advance to GO', '')],
                 10: () => [currentPlayer.addSubMoney(false, 100, this.room), this.handlepopup('chest', 'Income Tax House raid', 'per Each house pay 25 and Each Hotel pay 50')],
                 11: () => [currentPlayer.addSubMoney(false, 100, this.room), this.handlepopup('chest', 'Income Tax House raid', 'per Each house pay 25 and Each Hotel pay 50')],
-                12: () => [this.movePlayerAnimation(4), this.handlepopup('chest', 'Moving Four Steps', '')]
+                12: () => [this.movePlayer(4), this.handlepopup('chest', 'Moving Four Steps', '')]
             },
             'jail': [
         () => {

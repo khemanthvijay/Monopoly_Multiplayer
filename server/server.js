@@ -68,7 +68,7 @@ wss.on('connection', (ws) => {
                             console.log('buy');
                             break;
                         case 'ClickedTrade':
-                            game.Trade();
+                            game.tradeProperty();
                             break;
                         case 'ClickedDone':
                             game.ClickedDone();
@@ -78,6 +78,12 @@ wss.on('connection', (ws) => {
                             break;
                         case 'ClickedPayJail':
                             game.payjail();
+                            break;
+                        case 'TradeOffered':
+                            game.handleTradeOffered(data);
+                            break;
+                        case 'SubmittingTrade':
+                            game.submittingTrade(data);
                             break;
                     }
                 }
