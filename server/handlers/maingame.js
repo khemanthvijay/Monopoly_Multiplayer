@@ -86,7 +86,7 @@ class Property {
             player.addSubMoney(true, rent, gameInstance.room);
             ownerPlayer.addSubMoney(false, rent, gameInstance.room);
 
-            gameInstance.handlepopup('rent', `Rent Paid ${rent} by Player ${player.id}`, `<div style='display: flex;'>
+            gameInstance.handlepopup('rent', `Rent Paid ${rent} by Player ${player.playerID}`, `<div style='display: flex;'>
                 <p style="font-size: 4rem;">${player.icon}</p>
                 <p style="font-size: 55px;">&#x2192;</p>
                 <p style="font-size: 4rem;">${ownerPlayer.icon}</p>
@@ -258,7 +258,7 @@ class Game {
             console.log('check rent');
             const property = this.properties.find(prop => prop.position === newPosition);
             if (property.owner !== this.players[this.playerIndex-1].id)
-                property.payRent(this.players[this.playerIndex-1], this, 7);
+                property.payRent(this.players[this.playerIndex-1], this, total);
             }else{
                 console.log('rolled '+total);
                 this.handleSpecialCard(splcard, random1,random2); 
@@ -482,7 +482,7 @@ class Game {
         if (splcard === 'Card not found') {
             //console.log('check rent');
             const property = this.properties.find(prop => prop.position === newpos);
-            if (property.owner !== this.players[this.playerIndex-1].id)
+            if (property.owner !== this.players[this.playerIndex-1].playerID)
                 property.payRent(this.players[this.playerIndex-1], this, total);
         } else {
             this.handleSpecialCard(splcard, total);
@@ -616,8 +616,9 @@ class Game {
                 4: () => [this.changeposition(45), /*this.handlepopup('chest', 'Sent to Jail', 'Selling Illegal Items')*/],
                 5: () => [this.movePlayer(3,3), this.handlepopup('chest', 'Moving six Steps Ahead', '')],
                 6: () => [this.splbirthday(),this.handlepopup('chest','Its Your Birthday','Collect 20 From Each Player')],
-                7: () => [currentPlayer.addSubMoney(true, 50, this.room), this.handlepopup('chest', 'Doctor Visiting fee $50', '')],
-                8: () => this.handlepopup('chest', 'Nothing Special', ''),
+                7: () => [currentPlayer.addSubMoney(true, 100, this.room), this.handlepopup('chest', 'i Dont know', '')],
+                // 8: () => this.handlepopup('chest', 'Nothing Special', ''),
+                8: () => [currentPlayer.addSubMoney(false, 50, this.room), this.handlepopup('chest', 'Doctor Visiting fee $50', '')],
                 9: () => [this.changeposition(1), this.handlepopup('chest', 'Advance to GO', '')],
                 10: () => [currentPlayer.addSubMoney(false, 100, this.room), this.handlepopup('chest', 'Income Tax House raid', 'per Each house pay 25 and Each Hotel pay 50')],
                 11: () => [currentPlayer.addSubMoney(false, 100, this.room), this.handlepopup('chest', 'Income Tax House raid', 'per Each house pay 25 and Each Hotel pay 50')],
