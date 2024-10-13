@@ -28,8 +28,4 @@ jobs:
           mkdir -p public
           cp -r server/public/* public/
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public
+      
