@@ -1,3 +1,46 @@
+function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+}
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    let rotateEle = document.getElementById("rotate-message-id");
+    let responEle = document.getElementById("responsive-id");
+    let usercontrolEle = document.getElementById("controls-container-id");
+
+    function checkOrientation() {
+      if (window.innerWidth > window.innerHeight) {
+        // Landscape orientation
+        rotateEle.style.display = 'none';
+        responEle.style.display = 'block';
+        usercontrolEle.style.display = 'flex';
+        // console.log("Landscape mode");
+      } else {
+        // Portrait orientation
+        rotateEle.style.display = 'block';
+        responEle.style.display = 'none';
+        usercontrolEle.style.display = 'none';
+        // console.log("Portrait mode");
+      }
+      // Print display properties to console
+    //   console.log("rotateEle display: ", rotateEle.style.display);
+    //   console.log("responEle display: ", responEle.style.display);
+    //   console.log("usercontrolEle display: ", usercontrolEle.style.display);
+     }
+
+    // Initial check
+    checkOrientation();
+
+    // Listen for resize events to detect orientation changes
+    window.addEventListener("resize", checkOrientation);
+  });
+
 class WebSocketManager {
     constructor() {
         this.socket = new WebSocket('ws://' + window.location.host);

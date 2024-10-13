@@ -261,7 +261,7 @@ class Game {
                 property.payRent(this.players[this.playerIndex-1], this, 7);
             }else{
                 console.log('rolled '+total);
-                this.handleSpecialCard(splcard, total); 
+                this.handleSpecialCard(splcard, random1,random2); 
             }
        }
        
@@ -277,7 +277,9 @@ class Game {
         //console.log('handle '+this.playerIndex);
         let currentPlayer = this.players[this.playerIndex-1];
         if(!currentPlayer.jail[0] || currentPlayer.jail[1] == 0 ){
-           this.movePlayer(rolled);
+            const first = Math.floor(Math.random() * (rolled - 1)) + 1;
+            const second = rolled - first;
+           this.movePlayer(first,second);
            //console.log('checked not in jail'); 
         }
         else{
@@ -285,7 +287,9 @@ class Game {
                 currentPlayer.jail[0] = false;
                 currentPlayer.jail[1] = 0;
                 this.handlepopup('other','Lucky','');
-                this.movePlayer(rolled);
+                const first = Math.floor(Math.random() * (rolled - 1)) + 1;
+                const second = rolled - first;
+                this.movePlayer(first,second);
             }
             else{
                 this.handlepopup('unlucky','UNLUCKY !!!','Try Again');
@@ -588,13 +592,14 @@ class Game {
             }
         });
     }
-    handleSpecialCard(name, rolled) {
+    handleSpecialCard(name, number1,number2) {
         //console.log(name);
+        let rolled = number1+number2;
         let currentPlayer = this.players[this.playerIndex-1];
         const specialActions = {
             'chance': {
                 2: () => [this.changeposition(45, rolled), /*this.handlepopup('chance', "Sent to Jail", "Crime")*/],
-                3: () => [this.movePlayer(3, rolled), this.handlepopup('chance', 'Moving 3 Forward', "")],
+                3: () => [this.movePlayer(1,2), this.handlepopup('chance', 'Moving 3 Forward', "")],
                 4: () => [currentPlayer.addSubMoney(true, 100, this.room), this.handlepopup('chance', 'School fee Paid $100', "")],
                 5: () => [this.changeposition(45), /*this.handlepopup('chance', 'Sent to Jail', 'Kidnap')*/],
                 6: () => [currentPlayer.addSubMoney(false, 100, this.room), this.handlepopup('chance', 'You got Refund $100', "Bank Error")],
@@ -609,14 +614,14 @@ class Game {
                 2: () => [this.changeposition(28, rolled), this.handlepopup('chest', 'You are Visiting Ventor avenue', '')],
                 3: () => [currentPlayer.addSubMoney(true, 150, this.room), this.handlepopup('chest', 'Your Computer Damaged', 'Repair charges $150')],
                 4: () => [this.changeposition(45), /*this.handlepopup('chest', 'Sent to Jail', 'Selling Illegal Items')*/],
-                5: () => [this.movePlayer(6), this.handlepopup('chest', 'Moving six Steps Ahead', '')],
+                5: () => [this.movePlayer(3,3), this.handlepopup('chest', 'Moving six Steps Ahead', '')],
                 6: () => [this.splbirthday(),this.handlepopup('chest','Its Your Birthday','Collect 20 From Each Player')],
                 7: () => [currentPlayer.addSubMoney(true, 50, this.room), this.handlepopup('chest', 'Doctor Visiting fee $50', '')],
                 8: () => this.handlepopup('chest', 'Nothing Special', ''),
                 9: () => [this.changeposition(1), this.handlepopup('chest', 'Advance to GO', '')],
                 10: () => [currentPlayer.addSubMoney(false, 100, this.room), this.handlepopup('chest', 'Income Tax House raid', 'per Each house pay 25 and Each Hotel pay 50')],
                 11: () => [currentPlayer.addSubMoney(false, 100, this.room), this.handlepopup('chest', 'Income Tax House raid', 'per Each house pay 25 and Each Hotel pay 50')],
-                12: () => [this.movePlayer(4), this.handlepopup('chest', 'Moving Four Steps', '')]
+                12: () => [this.movePlayer(3,1), this.handlepopup('chest', 'Moving Four Steps', '')]
             },
             'jail': [
         () => {
