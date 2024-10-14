@@ -257,7 +257,7 @@ class Game {
            if(splcard == 'Card not found'){
             console.log('check rent');
             const property = this.properties.find(prop => prop.position === newPosition);
-            if (property.owner !== this.players[this.playerIndex-1].id)
+            if (property.owner !== this.players[this.playerIndex-1].playerID)
                 property.payRent(this.players[this.playerIndex-1], this, total);
             }else{
                 console.log('rolled '+total);
