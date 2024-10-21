@@ -158,7 +158,7 @@ class PlayerDisplayManager {
                     diceEle.style.display = "none";
                     done.style.display = "none";
                     document.getElementById('sell-card').style.display = "block";
-                    docEle.innerHTML = data.displayMessage;
+                    docEle.innerHTML = data.displayMessage[1];
                 }
             }
 
@@ -208,8 +208,8 @@ class PlayerDisplayManager {
         data.playersData.forEach(player => {
             const playerDiv = document.getElementById(`player-${player.playerName}`) || PlayerDisplayManager.createPlayerDiv(player);
             
-            console.log('audio');
-            console.log(parseInt(playerDiv.querySelector('.cash-value').textContent.replace(/[$,]/g, '')));
+            // console.log('audio');
+            // console.log(parseInt(playerDiv.querySelector('.cash-value').textContent.replace(/[$,]/g, '')));
             if(parseInt(playerDiv.querySelector('.cash-value').textContent.replace(/[$,]/g, ''))<player.money){
                 const audio = new Audio('./audios/received-money.aac');
                 audio.play();
@@ -256,6 +256,8 @@ class PlayerDisplayManager {
         }
     }
     static clickedPayjail() {
+        let diceEle = document.getElementById('sdice');
+                diceEle.style.display = "block";
         console.log('clicked pay jail');
         wsManager.sendMessage({
             type: 'MainGameMessage',
@@ -265,6 +267,8 @@ class PlayerDisplayManager {
         });    
     }
     static clickedWaitjail() {
+        let diceEle = document.getElementById('sdice');
+                diceEle.style.display = "block";
         console.log('clicked wait jail');
         wsManager.sendMessage({
             type: 'MainGameMessage',
@@ -399,7 +403,7 @@ class PlayerDisplayManager {
         parentElement.innerHTML = msg;
         //console.log('rent')
       }
-      else if(type == 'income tax'|| type== 'chance'||type=='chest'||type == 'club'||type == 'other'||type == 'unlucky'){
+      else if(type == 'income tax'|| type== 'chance'||type=='chest'||type == 'club'||type == 'other'||type == 'unlucky' ||type =='luxury tax'){
         setTimeout(() => {
           this.clearpopup();
         }, 3000);
@@ -420,6 +424,8 @@ class PlayerDisplayManager {
         heading.textContent=head;
         let cont ='<div style="display: flex;"><button id="payjail">Pay 200</button><button id="waitjail">Wait Until 6</button></div>';
         parentElement.innerHTML = cont;
+        let diceEle = document.getElementById('sdice');
+                diceEle.style.display = "none";
         this.dynamicEventListenersjail();
         const audio = new Audio('./audios/went-jail.aac');
         audio.play();
@@ -489,12 +495,54 @@ class PlayerDisplayManager {
         heading.textContent = head;
         let lessmoneycont = `<div><button id="repaybank">Repay</button><button id="bankruptcy">Declare Bankruptcy</button></div>`;
         parentElement.innerHTML = lessmoneycont;
+        let diceEle = document.getElementById('sdice');
+                diceEle.style.display = "none";
+        document.getElementById('repaybank').addEventListener('click',() =>{
+            PlayerDisplayManager.repaybank();
+        });
+        document.getElementById('bankruptcy').addEventListener('click',() =>{
+            PlayerDisplayManager.bankruptcyClicked();
+        })
       }
       else if(type == 'gamewon'){
         heading.textContent = head;
         parentElement.innerHTML ='';
       }
-        }
+    }
+
+    static repaybank() {
+        PlayerDisplayManager.clearpopup();
+        let data  = {displayMessage :[3,'Repay to bank']};
+        PlayerDisplayManager.displayMessage(data);
+        let repaycheck = setInterval(() => {
+            const playerDiv = document.getElementById(`player-${wsManager.mainplayer}`);
+            console.log(playerDiv);
+            console.log(parseInt(playerDiv.querySelector('.cash-value').textContent.replace(/[$,]/g, '')));
+            if(parseInt(playerDiv.querySelector('.cash-value').textContent.replace(/[$,]/g, ''))>=0){
+                console.log('repayed');
+                let data = {displayMessage:[2,`Player ${wsManager.mainplayer} Roll Dice!!`,'Repayed'],currentPlayer:wsManager.mainplayer}
+                PlayerDisplayManager.displayMessage(data);
+                clearInterval(repaycheck);
+                let diceEle = document.getElementById('sdice');
+                diceEle.style.display = "block";
+                let doneEle = document.getElementById('done');
+                doneEle.style.display="none";
+                let buyEle = document.getElementById('buy-card');
+                buyEle.style.display="none";
+                let sellEle = document.getElementById('sell-card');
+                sellEle.style.display="none"; 
+            }
+        }, 1000);
+    }
+
+    static bankruptcyClicked() {
+        wsManager.sendMessage({
+            type: 'MainGameMessage',
+            message: 'declaredBankruptcy',
+            player: wsManager.mainplayer,
+            roomCode: wsManager.roomCode
+        });
+    }
         static DoneClicked() {
             if(!PlayerDisplayManager.button != 'done'){
             wsManager.sendMessage({

@@ -85,6 +85,9 @@ wss.on('connection', (ws) => {
                         case 'SubmittingTrade':
                             game.submittingTrade(data);
                             break;
+                        case 'declaredBankruptcy':
+                            game.handleBankruptcy(data);
+                            break;
                     }
                 }
         }

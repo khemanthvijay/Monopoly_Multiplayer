@@ -69,11 +69,11 @@ class Property {
             if (this.group > 0) {
                 const propertiesInGroup = gameInstance.properties.filter(property => property.group === this.group);
                 const ownerPropertiesInGroup = propertiesInGroup.filter(property => property.owner === this.owner);
-
+                console.log(ownerPropertiesInGroup);
                 if (ownerPropertiesInGroup.length === propertiesInGroup.length) {
-                    rent = parseInt((this.price / 100) * 20); // Higher rent for owning all properties in group
+                    rent = parseInt((this.price / 100) * 80); // Higher rent for owning all properties in group
                 } else {
-                    rent = parseInt((this.price / 100) * 10); // Base rent
+                    rent = parseInt((this.price / 100) * 20); // Base rent
                 }
             } else if (this.group === 0) {
                 const ownerRailroads = gameInstance.properties.filter(property => property.group === 0 && property.owner === this.owner).length;
@@ -200,6 +200,19 @@ class Game {
         } else {
             console.error(`Room not found.`);
         }
+        // let one = ['Oriental Avenue', 'Vermont Avenue', 'Connecticut Avenue'];
+        // let two = ['St. Charles Place','States Avenue','Virginia Avenue'];
+        // // Set the owner of the properties in 'one' to 1 and add them to player 0's cards
+        // this.properties.forEach(property => {
+        //     if (one.includes(property.name)) {
+        //         property.owner = 1; // Set owner to player 1 (ID = 1)
+        //         this.players[0].cards.push(property.name); // Add property to player 0's cards
+        //         }});
+        // this.properties.forEach(property => {
+        //     if (two.includes(property.name)) {
+        //         property.owner = 2; // Set owner to player 1 (ID = 1)
+        //         this.players[1].cards.push(property.name); // Add property to player 0's cards
+        //         }});
     }
 
     rollDice() {
@@ -207,8 +220,8 @@ class Game {
             return; // Prevent multiple clicks while animation is playing
         }
         this.isRolling = true;
-        var random1 = Math.floor(Math.random() * 6) + 1; // Generate a random number between 1 and 6
-        var random2 = Math.floor(Math.random() * 6) + 1; // Generate a random number between 1 and 6
+        var random1 = Math.floor((Math.random() + Date.now()) % 1 * 6) + 1;// Generate a random number between 1 and 6
+        var random2 = Math.floor((Math.random() + Date.now()) % 1 * 6) + 1; // Generate a random number between 1 and 6
         this.movePlayer(random1,random2);
        }
        
@@ -398,7 +411,7 @@ class Game {
         let validOfferedCards = data.data[0];
         let validRequestedCards = data.data[1];
         let offeredto = data.offeredto;
-        console.log(this.players[this.playerIndex-1].cards);
+        //console.log(this.players[this.playerIndex-1].cards);
         console.log(offeredto+" "+validOfferedCards+" "+validRequestedCards);
         if (validOfferedCards.length > 0) {
             //console.log('offered' + validOfferedCards);
@@ -406,10 +419,10 @@ class Game {
             validOfferedCards.forEach(cardName => {
                 let card = this.getCardByName(cardName);
                 if (card) {
-                    console.log(card);
-                    card.owner = offeredto;
+                    //console.log(card);
+                    card.owner = offeredto+1;
                     this.players[offeredto].cards.push(card.name);
-                    console.log('offered to '+this.players[offeredto].playerName);
+                    console.log('offered to '+offeredto+" "+this.players[offeredto].playerName);
 
                 }
             });
@@ -419,7 +432,7 @@ class Game {
             validRequestedCards.forEach(cardName => {
                 let card = this.getCardByName(cardName);
                 if (card) {
-                    card.owner = this.playerIndex-1; // Update the owner to the current player
+                    card.owner = this.playerIndex; // Update the owner to the current player
                     this.players[this.playerIndex - 1].cards.push(card.name);
                 }
             });
@@ -428,7 +441,7 @@ class Game {
 
         // Update player's money by subtracting the requested money and adding the offered money
         if (data.data[2]) {
-            console.log('offered money '+data[2])
+            console.log('offered money '+data.data[2])
             this.players[offeredto].addSubMoney(false, data.data[2], this.room);
             this.players[this.playerIndex - 1].addSubMoney(true, data.data[2], this.room);
         }
@@ -452,7 +465,7 @@ class Game {
                 name: card.name,
                 position: card.position
             };
-            let color = this.color[card.owner]; // Owner's color
+            let color = this.color[card.owner-1]; // Owner's color
             console.log("owner "+card.owner);
             // Combine property and color into a single object and add to cardDataArray
             cardDataArray.push({
@@ -536,15 +549,53 @@ class Game {
         this.playerIndex++;
         if(this.playerIndex>this.players.length)
             this.playerIndex =1;
+        if(this.players[this.playerIndex-1].bankrupt==true) //bankruptcy
+            this.playerIndex++;
         this.isRolling = false;
         let message ={displayMessage : [1,this.messagePlayer[1]],
             functionsToCall : ['displayMessage'],
             currentPlayerIndex : this.playerIndex,
             playerName : this.players[this.playerIndex-1].playerName
         };
+        this.checkGameOver();
         this.room.broadcast({type: 'NextPlayerMessage', message});
         this.checkNextPlayerJail();
+        this.checkplayermoneyless();
     }
+    checkGameOver() {
+        let playersbankrupt =this.players.filter(player => player.bankrupt).length;
+        console.log(playersbankrupt,this.players.length);
+        if(this.players.length-1 == playersbankrupt){
+            this.handlepopup('gamewon',`Player ${this.players.filter(player => !player.bankrupt).map(player => player.playerID)} Won`,'');
+        }
+    }
+    handleBankruptcy(data) {
+        let currentPlayer = this.players[this.playerIndex-1];
+        currentPlayer.bankrupt = true;
+        this.properties.forEach(property => {
+            if (property.owner === currentPlayer.playerID) {
+                property.owner = null;
+            }});
+        this.handlepopup('other',`Player ${currentPlayer.playerID} Declared Bankruptcy`,'');
+        currentPlayer = null;
+    }
+
+    checkplayermoneyless() {
+        let currentPlayer = this.players[this.playerIndex-1];
+        if(currentPlayer.money<0){
+            let message = {
+                functionsToCall: ['handlepopup'],
+                handlepopupData: ['lessmoney', 'Repay to Continue', '']
+            };
+
+            // Send message to the player
+            this.room.sendToPlayer(
+                this.players[this.playerIndex - 1].playerName,
+                { type: 'Popup', message }
+            );
+        }
+    }
+
 
     checkNextPlayerJail() {
         //console.log('player index'+this.playerIndex);
@@ -651,8 +702,8 @@ class Game {
             'water works': [
                 () => this.handlepopup('water works', 'Landed on Water Works', '')
             ],
-            'go': [
-                () => this.handlepopup('go', 'Landed on GO', 'Collect $200')
+            'Go': [
+                () => this.handlepopup('other', 'Landed on Start', 'Collect $200')
             ],
             'go to jail': [
                 // () => this.handlepopup('go to jail', 'Go to Jail', 'Do not pass GO, do not collect $200'),
