@@ -207,15 +207,20 @@ class PlayerDisplayManager {
 
         data.playersData.forEach(player => {
             const playerDiv = document.getElementById(`player-${player.playerName}`) || PlayerDisplayManager.createPlayerDiv(player);
+            
+            console.log('audio');
+            console.log(parseInt(playerDiv.querySelector('.cash-value').textContent.replace(/[$,]/g, '')));
+            if(parseInt(playerDiv.querySelector('.cash-value').textContent.replace(/[$,]/g, ''))<player.money){
+                const audio = new Audio('./audios/received-money.aac');
+                audio.play();
+               
+            }
+            if(parseInt(playerDiv.querySelector('.cash-value').textContent.replace(/[$,]/g, ''))>player.money){
+                
+                const audio = new Audio('./audios/lost-money.aac');
+                audio.play();
+            }
             playerDiv.querySelector('.cash-value').textContent = `$${player.money}`;
-            if(parseInt(playerDiv.querySelector('.cash-value').textContent)>player.money){
-                const audio = new Audio('./received-money.acc');
-                audio.play();
-            }
-            else{
-                const audio = new Audio('./lost-money');
-                audio.play();
-            }
         });
     }
 
@@ -333,7 +338,7 @@ class PlayerDisplayManager {
             this.clearpopup();
         popupEle.style.display = "block";
       if(type == 'buycard'){
-        const audio = new Audio('./buy-property.aac');
+        const audio = new Audio('./audios/buy-property.aac');
         audio.play();
         setTimeout(() => {
           this.clearpopup();
@@ -416,7 +421,7 @@ class PlayerDisplayManager {
         let cont ='<div style="display: flex;"><button id="payjail">Pay 200</button><button id="waitjail">Wait Until 6</button></div>';
         parentElement.innerHTML = cont;
         this.dynamicEventListenersjail();
-        const audio = new Audio('./went-jail.acc');
+        const audio = new Audio('./audios/went-jail.aac');
         audio.play();
       }
       else if(type == 'trade'){
