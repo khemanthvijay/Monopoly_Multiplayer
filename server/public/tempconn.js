@@ -855,3 +855,6 @@ class PlayerDisplayManager {
     }
 
 const wsManager = new WebSocketManager();
+let audio = new Audio('./audios/background.mp3');
+audio.loop = true;  // Ensure looping
+audio.play().catch(error => console.log("Autoplay blocked: " + error));
